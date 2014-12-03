@@ -1,3 +1,3 @@
 # elFinder builds
 
-This is a mirror from the nightly builds from @nao-pon (https://github.com/nao-pon/elFinder-nightly/), with Composer support added.
+This is a built regularly from the 2.1 branch from elFinder: https://github.com/Studio-42/elFinder/tree/2.1
