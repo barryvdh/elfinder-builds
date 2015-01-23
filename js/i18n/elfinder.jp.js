@@ -25,8 +25,8 @@ if (elFinder && elFinder.prototype && typeof(elFinder.prototype.i18) == 'object'
 			'errAbort'             : '接続が中断されました',
 			'errTimeout'           : '接続がタイムアウトしました.',
 			'errNotFound'          : 'バックエンドが見つかりません',
-			'errResponse'          : '無効なバックエンドコンフィグレーションです',
-			'errConf'              : '無効なバックエンドコンフィグレーションです',
+			'errResponse'          : '無効なバックエンドレスポンスです',
+			'errConf'              : 'バックエンドの設定が有効ではありません',
 			'errJSON'              : 'PHP JSON モジュールがインストールされていません',
 			'errNoVolumes'         : '読み込み可能なボリュームが入手できません',
 			'errCmdParams'         : 'コマンド "$1"のパラメーターが無効です',
@@ -125,6 +125,7 @@ if (elFinder && elFinder.prototype && typeof(elFinder.prototype.i18) == 'object'
 			'cmdsort'      : 'ソート',
 			'cmdnetmount'  : 'ネットワークボリュームをマウント', // added 18.04.2012
 			'cmdnetunmount': 'アンマウント', // added 30.04.2012
+			'cmdplaces'    : 'お気に入りへ', // added 28.12.2014
 			
 			/*********************************** buttons ***********************************/ 
 			'btnClose'  : '閉じる',
@@ -237,7 +238,7 @@ if (elFinder && elFinder.prototype && typeof(elFinder.prototype.i18) == 'object'
 			'selectlfile'     : '最後のファイルを選択',
 			'viewlist'        : 'リスト形式で見る',
 			'viewicons'       : 'アイコン形式で見る',
-			'places'          : 'Places',
+			'places'          : 'お気に入り',
 			'calc'            : '計算', 
 			'path'            : 'パス',
 			'aliasfor'        : 'エイリアス',
@@ -269,7 +270,7 @@ if (elFinder && elFinder.prototype && typeof(elFinder.prototype.i18) == 'object'
 			'maintainer'      : 'メインテナー',
 			'translator'      : '翻訳者',
 			'icons'           : 'アイコン',
-			'dontforget'      : 'タオル忘れちゃだめよー。',
+			'dontforget'      : 'タオル忘れちゃだめよ～',
 			'shortcutsof'     : 'ショートカットは利用できません',
 			'dropFiles'       : 'ここにファイルをドロップ',
 			'or'              : 'または',

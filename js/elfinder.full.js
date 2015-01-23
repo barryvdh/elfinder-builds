@@ -1,9 +1,9 @@
 /*!
  * elFinder - file manager for web
- * Version 2.1.0 (2014-12-23)
+ * Version 2.1.0 (2015-01-23)
  * http://elfinder.org
  * 
- * Copyright 2009-2014, Studio 42
+ * Copyright 2009-2015, Studio 42
  * Licensed under a 3 clauses BSD license
  */
 (function($) {
@@ -186,13 +186,6 @@ window.elFinder = function(node, opts) {
 		queue = [],
 		
 		/**
-		 * Net drivers names
-		 *
-		 * @type Array
-		 **/
-		netDrivers = [],
-		
-		/**
 		 * Commands prototype
 		 *
 		 * @type Object
@@ -327,6 +320,12 @@ window.elFinder = function(node, opts) {
 	 **/
 	this.oldAPI = false;
 	
+	/**
+	 * Net drivers names
+	 *
+	 * @type Array
+	 **/
+	this.netDrivers = [];
 	/**
 	 * User os. Required to bind native shortcuts for open/rename
 	 *
@@ -3767,7 +3766,8 @@ elFinder.prototype._options = {
 	commands : [
 		'open', 'reload', 'home', 'up', 'back', 'forward', 'getfile', 'quicklook', 
 		'download', 'rm', 'duplicate', 'rename', 'mkdir', 'mkfile', 'upload', 'copy', 
-		'cut', 'paste', 'edit', 'extract', 'archive', 'search', 'info', 'view', 'help', 'resize', 'sort', 'netmount', 'netunmount'
+		'cut', 'paste', 'edit', 'extract', 'archive', 'search', 'info', 'view', 'help',
+		'resize', 'sort', 'netmount', 'netunmount', 'places'
 	],
 	
 	/**
@@ -4176,11 +4176,11 @@ elFinder.prototype._options = {
 	 */
 	contextmenu : {
 		// navbarfolder menu
-		navbar : ['open', '|', 'copy', 'cut', 'paste', 'duplicate', '|', 'rm', '|', 'info', 'netunmount'],
+		navbar : ['open', '|', 'copy', 'cut', 'paste', 'duplicate', '|', 'rm', '|', 'places', 'info', 'netunmount'],
 		// current directory menu
 		cwd    : ['reload', 'back', '|', 'upload', 'mkdir', 'mkfile', 'paste', '|', 'sort', '|', 'info'],
 		// current directory file menu
-		files  : ['getfile', '|','open', 'quicklook', '|', 'download', '|', 'copy', 'cut', 'paste', 'duplicate', '|', 'rm', '|', 'edit', 'rename', 'resize', '|', 'archive', 'extract', '|', 'info']
+		files  : ['getfile', '|','open', 'quicklook', '|', 'download', '|', 'copy', 'cut', 'paste', 'duplicate', '|', 'rm', '|', 'edit', 'rename', 'resize', '|', 'archive', 'extract', '|', 'places', 'info']
 	},
 
 	/**
@@ -4969,6 +4969,7 @@ if (elFinder && elFinder.prototype && typeof(elFinder.prototype.i18) == 'object'
 			'cmdsort'      : 'Sort',
 			'cmdnetmount'  : 'Mount network volume', // added 18.04.2012
 			'cmdnetunmount': 'Unmount', // added 30.04.2012
+			'cmdplaces'    : 'To Places', // added 28.12.2014
 			
 			/*********************************** buttons ***********************************/ 
 			'btnClose'  : 'Close',
@@ -7102,6 +7103,11 @@ $.fn.elfinderplaces = function(fm, opts) {
 			 * @return void
 			 **/
 			add = function(dir) {
+				if (!fm.files().hasOwnProperty(dir.hash)) {
+					// update cache
+					fm.trigger('tree', {tree: [dir]});
+				}
+				
 				var node = create(dir);
 
 				if (subtree.children().length) {
@@ -7216,7 +7222,12 @@ $.fn.elfinderplaces = function(fm, opts) {
 					$(this).toggleClass('ui-state-hover');
 				})
 				.delegate('.'+navdir, 'click', function(e) {
-					fm.exec('open', $(this).attr('id').substr(6));
+					var p = $(this);
+					if (p.data('longtap')) {
+						e.stopPropagation();
+						return;
+					}
+					fm.exec('open', p.attr('id').substr(6));
 				})
 				.delegate('.'+navdir+':not(.'+clroot+')', 'contextmenu', function(e) {
 					var hash = $(this).attr('id').substr(6);
@@ -7253,7 +7264,39 @@ $.fn.elfinderplaces = function(fm, opts) {
 						save();
 						resolve && ui.helper.hide();
 					}
+				})
+				// for touch device
+				.on('touchstart', '.'+navdir+':not(.'+clroot+')', function(e) {
+					var hash = $(this).attr('id').substr(6),
+					p = $(this)
+					.data('longtap', null)
+					.data('tmlongtap', setTimeout(function(){
+						// long tap
+						p.data('longtap', true);
+						fm.trigger('contextmenu', {
+							raw : [{
+								label    : fm.i18n('rmFromPlaces'),
+								icon     : 'rm',
+								callback : function() { remove(hash); save(); }
+							}],
+							'x'       : e.originalEvent.touches[0].clientX,
+							'y'       : e.originalEvent.touches[0].clientY
+						});
+					}, 500));
+				})
+				.on('touchmove touchend', '.'+navdir+':not(.'+clroot+')', function(e) {
+					clearTimeout($(this).data('tmlongtap'));
 				});
+
+		// "on regist" for command exec
+		$(this).on('regist', function(e, files){
+			$.each(files, function(i, dir) {
+				if (dir && dir.mime == 'directory' && $.inArray(dir.hash, dirs) === -1) {
+					add(dir);
+				}
+			});
+			save();
+		});
 	
 
 		// on fm load - show places and load files from backend
@@ -7264,7 +7307,7 @@ $.fn.elfinderplaces = function(fm, opts) {
 			
 			places.show().parent().show();
 
-			dirs = $.map(fm.storage('places').split(','), function(hash) { return hash || null});
+			dirs = $.map((fm.storage('places') || '').split(','), function(hash) { return hash || null;});
 			
 			if (dirs.length) {
 				root.prepend(spinner);
@@ -8032,11 +8075,10 @@ $.fn.elfindertree = function(fm, opts) {
 				})
 				// for touch device
 				.delegate('.'+navdir, 'touchstart', function(e) {
-					var p = $(this),
-					evt = e.originalEvent;
-					p.data('longtap', null);
-					p.data('touching', true);
-					p.data('tmlongtap', setTimeout(function(e){
+					var evt = e.originalEvent,
+					p = $(this)
+					.data('longtap', null)
+					.data('tmlongtap', setTimeout(function(e){
 						// long tap
 						p.data('longtap', true);
 						fm.trigger('contextmenu', {
@@ -9206,7 +9248,7 @@ elFinder.prototype.commands.help = function() {
 		
 		
 		about = function() {
-			html.push('<div id="about" class="ui-tabs-panel ui-widget-content ui-corner-bottom"><div class="elfinder-help-logo"/>')
+			html.push('<div id="about" class="ui-tabs-panel ui-widget-content ui-corner-bottom"><div class="elfinder-help-logo"/>');
 			html.push('<h3>elFinder</h3>');
 			html.push('<div class="'+prim+'">'+fm.i18n('webfm')+'</div>');
 			html.push('<div class="'+sec+'">'+fm.i18n('ver')+': '+fm.version+', '+fm.i18n('protocolver')+': <span id="apiver"></span></div>');
@@ -9235,7 +9277,7 @@ elFinder.prototype.commands.help = function() {
 			
 			html.push(sep);
 			html.push('<div class="'+lic+'">Licence: BSD Licence</div>');
-			html.push('<div class="'+lic+'">Copyright © 2009-2011, Studio 42</div>');
+			html.push('<div class="'+lic+'">Copyright © 2009-2015, Studio 42</div>');
 			html.push('<div class="'+lic+'">„ …'+fm.i18n('dontforget')+' ”</div>');
 			html.push('</div>');
 		},
@@ -9252,11 +9294,11 @@ elFinder.prototype.commands.help = function() {
 			
 				html.push('</div>');
 			} else {
-				html.push('<div class="elfinder-help-disabled">'+fm.i18n('shortcutsof')+'</div>')
+				html.push('<div class="elfinder-help-disabled">'+fm.i18n('shortcutsof')+'</div>');
 			}
 			
 			
-			html.push('</div>')
+			html.push('</div>');
 			
 		},
 		help = function() {
@@ -9266,7 +9308,7 @@ elFinder.prototype.commands.help = function() {
 			html.push('</div>');
 			// end help
 		},
-		content;
+		content = '';
 	
 	this.alwaysEnabled  = true;
 	this.updateOnSelect = false;
@@ -9293,11 +9335,9 @@ elFinder.prototype.commands.help = function() {
 		html.push('</div>');
 		content = $(html.join(''));
 		
-		fm.one('load', function setapi() { content.find('#apiver').text(fm.api); });
-		
 		content.find('.ui-tabs-nav li')
 			.hover(function() {
-				$(this).toggleClass('ui-state-hover')
+				$(this).toggleClass('ui-state-hover');
 			})
 			.children()
 			.click(function(e) {
@@ -9314,21 +9354,22 @@ elFinder.prototype.commands.help = function() {
 			})
 			.filter(':first').click();
 		
-	}, 200)
+	}, 200);
 	
 	this.getstate = function() {
 		return 0;
-	}
+	};
 	
 	this.exec = function() {
 		if (!this.dialog) {
+			content.find('#apiver').text(this.fm.api);
 			this.dialog = this.fm.dialog(content, {title : this.title, width : 530, autoOpen : false, destroyOnClose : false});
 		}
 		
 		this.dialog.elfinderdialog('open').find('.ui-tabs-nav li a:first').click();
-	}
+	};
 
-}
+};
 
 
 /*
@@ -10219,6 +10260,42 @@ elFinder.prototype.commands.paste = function() {
 	}
 
 }
+
+/*
+ * File: /js/commands/places.js
+ */
+
+/**
+ * @class  elFinder command "places"
+ * Regist to Places
+ *
+ * @author Naoki Sawada
+ **/
+elFinder.prototype.commands.places = function() {
+	var self   = this,
+	fm     = this.fm,
+	filter = function(hashes) {
+		return $.map(self.files(hashes), function(f) { return f.mime == 'directory' ? f : null; });
+	},
+	places = null;
+	
+	this.getstate = function(sel) {
+		var sel = this.hashes(sel),
+		cnt = sel.length;
+		
+		return  places && cnt && cnt == filter(sel).length ? 0 : -1;
+	};
+	
+	this.exec = function(hashes) {
+		var files = this.files(hashes);
+		places.trigger('regist', [ files ]);
+	};
+	
+	fm.one('load', function(){
+		places = fm.ui.places;
+	});
+
+};
 
 /*
  * File: /js/commands/quicklook.js
