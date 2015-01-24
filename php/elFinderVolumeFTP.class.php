@@ -678,7 +678,11 @@ class elFinderVolumeFTP extends elFinderVolumeDriver {
 	 * @author Dmitry (dio) Levashov
 	 **/
 	protected function _dimensions($path, $mime) {
-		return false;
+		$ret = '';
+		if ($imgsize = $this->getImageSize($path)) {
+			$ret = $imgsize['dimensions'];
+		}
+		return $ret;
 	}
 	
 	/******************** file/dir content *********************/
