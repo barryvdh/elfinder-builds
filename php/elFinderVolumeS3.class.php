@@ -317,13 +317,13 @@ class elFinderVolumeS3 extends elFinderVolumeDriver {
 	 *
 	 * @param  string  $path  file path
 	 * @param  string  $mime  file mime type
-	 * @return string
+	 * @return string|false
 	 * @author Dmitry (dio) Levashov
 	 * @author Naoki Sawada
 	 **/
 	protected function _dimensions($path, $mime) {
-		$ret = '';
-		if ($imgsize = $this->getImageSize($path)) {
+		$ret = false;
+		if ($imgsize = $this->getImageSize($path, $mime)) {
 			$ret = $imgsize['dimensions'];
 		}
 		return $ret;
@@ -365,17 +365,6 @@ class elFinderVolumeS3 extends elFinderVolumeDriver {
 	}
 	
 	/**
-	 * Return temporary file path for required file
-	 *
-	 * @param  string  $path   file path
-	 * @return string
-	 * @author Dmitry (dio) Levashov
-	 **/
-	protected function tmpname($path) {
-		return $this->tmpPath.DIRECTORY_SEPARATOR.md5($path);
-	}
-	
-	/**
 	 * Open file and return file pointer
 	 *
 	 * @param  string  $path  file path
@@ -386,7 +375,7 @@ class elFinderVolumeS3 extends elFinderVolumeDriver {
 	 **/
 	protected function _fopen($path, $mode="rb") {
 	
-		$tn = $this->tmpname($path);
+		$tn = $this->getTempFile($path);
 	
 		$fp = $this->tmbPath
 			? @fopen($tn, 'w+')
@@ -424,7 +413,7 @@ class elFinderVolumeS3 extends elFinderVolumeDriver {
 	protected function _fclose($fp, $path='') {
 		@fclose($fp);
 		if ($path) {
-			@unlink($this->tmpname($path));
+			@unlink($this->getTempFile($path));
 		}
 	}
 	
